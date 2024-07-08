@@ -11,3 +11,7 @@ Limit a laptop battery from overcharging. Define a maximum charge limit inside
 the script; if the model is supported, it installs a systemd service that caps
 charging at the specified threshold.
 
+### `resistor.c`
+Decode resistor colour bands. Pass band colours (e.g. `blue red green gold`) to
+get the resistance value, or run with no arguments for a reference table.
+
