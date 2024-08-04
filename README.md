@@ -11,6 +11,10 @@ Limit a laptop battery from overcharging. Define a maximum charge limit inside
 the script; if the model is supported, it installs a systemd service that caps
 charging at the specified threshold.
 
+### `colors.sh`
+Print every terminal colour alongside its escape sequence. Useful as a visual
+reference when customising prompts, themes, or status lines.
+
 ### `resistor.c`
 Decode resistor colour bands. Pass band colours (e.g. `blue red green gold`) to
 get the resistance value, or run with no arguments for a reference table.
