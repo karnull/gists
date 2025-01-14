@@ -23,6 +23,11 @@ properties of each element.
 Drop system caches and report memory usage before and after — total, used,
 free, shared, and buffer/cache.
 
+### `namedit.sh`
+Mass-rename files using your `\$EDITOR` (great with vim motions and macros).
+Also supports format conversion: change a file's extension and the script
+delegates to `ffmpeg` to convert it.
+
 ### `resistor.c`
 Decode resistor colour bands. Pass band colours (e.g. `blue red green gold`) to
 get the resistance value, or run with no arguments for a reference table.
