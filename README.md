@@ -32,3 +32,7 @@ delegates to `ffmpeg` to convert it.
 Decode resistor colour bands. Pass band colours (e.g. `blue red green gold`) to
 get the resistance value, or run with no arguments for a reference table.
 
+### `rmsymlink.sh`
+Remove a symbolic link together with the file it points to. Cleans up the link
+first, then the target.
+
