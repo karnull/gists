@@ -40,3 +40,7 @@ get the resistance value, or run with no arguments for a reference table.
 Remove a symbolic link together with the file it points to. Cleans up the link
 first, then the target.
 
+### `vimacro.sh`
+Bring vim macros to the shell - record a sequence of edits and replay them across
+input. Useful for batch editing operations.
+
