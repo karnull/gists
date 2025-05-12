@@ -15,6 +15,10 @@ charging at the specified threshold.
 Print every terminal colour alongside its escape sequence. Useful as a visual
 reference when customising prompts, themes, or status lines.
 
+### `copy_code.sh`
+Copy all source files of a given type into the clipboard in one go. Handy for
+sharing snippets in places where uploading files isn't convenient.
+
 ### `periodic.sh`
 Render the periodic table directly in the terminal, with colour coding for groups and
 properties of each element.
