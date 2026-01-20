@@ -23,6 +23,10 @@ sharing snippets in places where uploading files isn't convenient.
 A more robust `go build` wrapper. Compiles a Go program for multiple architectures into
 `./bin/` instead of cluttering the project root.
 
+### `monitor_temp.sh`
+Monitor CPU and GPU temperatures in real-time and alert when thresholds are exceeded.
+Helps prevent thermal throttling and hardware damage.
+
 ### `periodic.sh`
 Render the periodic table directly in the terminal, with colour coding for groups and
 properties of each element.
