@@ -19,6 +19,11 @@ reference when customising prompts, themes, or status lines.
 Copy all source files of a given type into the clipboard in one go. Handy for
 sharing snippets in places where uploading files isn't convenient.
 
+
+### `monitor_temp.sh`
+Monitor CPU and GPU temperatures in real-time and alert when thresholds are exceeded.
+Helps prevent thermal throttling and hardware damage.
+
 ### `periodic.sh`
 Render the periodic table directly in the terminal, with colour coding for groups and
 properties of each element.
