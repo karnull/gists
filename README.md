@@ -49,3 +49,7 @@ first, then the target.
 Bring vim macros to the shell - record a sequence of edits and replay them across
 input. Useful for batch editing operations.
 
+### `watch_file.sh`
+Tail a file for changes and trigger notifications when new content is added. Great for
+monitoring logs in real-time.
+
