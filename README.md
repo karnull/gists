@@ -27,6 +27,10 @@ dates, and tidied decorations via an `awk` post-processor.
 Monitor CPU and GPU temperatures in real-time and alert when thresholds are exceeded.
 Helps prevent thermal throttling and hardware damage.
 
+### `open_ports.sh`
+List all currently listening network ports and the processes bound to them. Quick way to
+see what services are running.
+
 ### `periodic.sh`
 Render the periodic table directly in the terminal, with colour coding for groups and
 properties of each element.
