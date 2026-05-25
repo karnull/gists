@@ -19,6 +19,10 @@ reference when customising prompts, themes, or status lines.
 Copy all source files of a given type into the clipboard in one go. Handy for
 sharing snippets in places where uploading files isn't convenient.
 
+### `disk_usage_summary.sh`
+Report the top space-consuming directories and files, sorted by size. Helps identify what
+is eating up disk space on your system.
+
 ### `gl.sh`
 Enhanced `git log` visualiser. Renders the commit graph with coloured refs, formatted
 dates, and tidied decorations via an `awk` post-processor.
