@@ -19,6 +19,11 @@ reference when customising prompts, themes, or status lines.
 Copy all source files of a given type into the clipboard in one go. Handy for
 sharing snippets in places where uploading files isn't convenient.
 
+### `devenv.sh`
+Standardise common Docker and devcontainer actions while allowing custom project
+commands via a [switchboard.nvim](https://github.com/karnull/switchboard.nvim)'s
+local config file.
+
 ### `disk_usage_summary.sh`
 Report the top space-consuming directories and files, sorted by size. Helps identify what
 is eating up disk space on your system.
