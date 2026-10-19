@@ -34,6 +34,8 @@ Actions:
   delete          delete devcontainer
   exec <CMD>      run CMD in devcontainer
   connect         open shell in devcontainer
+  copilot         run copilot-cli
+  generate        generate generic .commands file
   list            list docker containers
 
 Default:
@@ -118,12 +120,21 @@ case "$ACTION" in
 
     connect|c)
         get_container_name CONTAINER
-        docker exec -ti "$CONTAINER-devcontainer" bash
+        docker exec -ti -w "/workspaces/$CONTAINER" "$CONTAINER-devcontainer" bash
         exit 0
         ;;
 
+    copilot|cc)
+        exit 0
+        ;;
+
+	generate|gen)
+		get_container_name CONTAINER
+		exit 0
+		;;
+
     list|l|ls)
-        docker container list
+        docker container ls --format "table {{.ID}}\t{{.RunningFor}}\t{{.Status}}\t{{.Names}}"
         exit 0
         ;;
 
