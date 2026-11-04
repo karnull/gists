@@ -14,7 +14,11 @@ fi
 
 #- Record original file names ----------------------------------------------------------------------
 
-RENAME_BUFFER=$(mktemp) || {
+# keep the name list in RAM-backed storage where the system has it
+BUFFER_DIR="${XDG_RUNTIME_DIR:-/dev/shm}"
+[[ -d "$BUFFER_DIR" && -w "$BUFFER_DIR" ]] || BUFFER_DIR="${TMPDIR:-/tmp}"
+
+RENAME_BUFFER=$(mktemp "${BUFFER_DIR%/}/namedit.XXXXXX") || {
     echo -e "Failed to create temp file";
     exit 1;
 }
