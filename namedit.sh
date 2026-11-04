@@ -56,17 +56,23 @@ LINES_BEFORE=$(wc -l < "$RENAME_BUFFER" | tr -d ' ')
 
 $EDITOR "$RENAME_BUFFER"
 
-LINES_AFTER=$(wc -l < "$RENAME_BUFFER" | tr -d ' ')
+# read loop rather than mapfile, which the bash 3.2 shipped with macOS lacks
+NEW_LINES=()
+while IFS= read -r line || [[ -n "$line" ]]; do
+    NEW_LINES+=("$line")
+done < "$RENAME_BUFFER"
+rm "$RENAME_BUFFER"
+
+LINES_AFTER=${#NEW_LINES[@]}
 
 if [ "$LINES_BEFORE" != "$LINES_AFTER" ]; then
     echo -e "\033[31mError:\033[0m Name list mismatch"
-    rm "$RENAME_BUFFER"
     exit 1
 fi
 
 for (( i=6; i<=$LINES_BEFORE; i++ )); do
     original_name="${ORIGINAL_NAMES[$i-6]}"
-    new_name=$(awk "NR==$i" "$RENAME_BUFFER")
+    new_name="${NEW_LINES[$i-1]}"
 
     # do nothing if filename isn't changed
     if [[ "$original_name" == "$new_name" ]]; then
@@ -104,9 +110,4 @@ for (( i=6; i<=$LINES_BEFORE; i++ )); do
         fi
     fi
 done
-
-
-#- Clean temporary file ----------------------------------------------------------------------------
-
-rm "$RENAME_BUFFER"
 
