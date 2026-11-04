@@ -24,6 +24,10 @@ RENAME_BUFFER=$(mktemp "${BUFFER_DIR%/}/namedit.XXXXXX") || {
 }
 mv "$RENAME_BUFFER" "$RENAME_BUFFER.toml"
 RENAME_BUFFER="$RENAME_BUFFER.toml"
+trap 'rm -f "$RENAME_BUFFER"' EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 echo "# Mass Rename Tool
 # - Dont add new lines or delete existing ones
