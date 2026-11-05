@@ -68,12 +68,31 @@ as_local() {
     fi
 }
 
+# refs/remotes/<remote>/HEAD only exists after a clone or set-head, so ask the remote when it is missing
+remote_default() {
+    local head
+    if head=$(git symbolic-ref --quiet --short "refs/remotes/$1/HEAD"); then
+        echo "${head#"$1"/}"
+        return
+    fi
+
+    head=$(GIT_TERMINAL_PROMPT=0 git ls-remote --symref "$1" HEAD 2> /dev/null \
+        | awk '$1 == "ref:" && $3 == "HEAD" { sub("^refs/heads/", "", $2); print $2 }')
+    if [[ -n $head ]]; then
+        echo "$head"
+    else
+        printf '%s\n' main master
+    fi
+}
+
 # Current branch and each remote's default branch, local copy included
 protected_branches() {
-    local ref
+    local remote branch
     git branch --show-current
-    git for-each-ref --format='%(symref:lstrip=2)' 'refs/remotes/*/HEAD' | while read -r ref; do
-        [[ -n $ref ]] && printf '%s\n%s\n' "$ref" "${ref#*/}"
+    git remote | while IFS= read -r remote; do
+        remote_default "$remote" | while IFS= read -r branch; do
+            printf '%s\n%s\n' "$remote/$branch" "$branch"
+        done
     done
 }
 
