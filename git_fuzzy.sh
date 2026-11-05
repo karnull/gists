@@ -213,9 +213,25 @@ rebase_branch() {
 }
 
 
+#- Stashes -----------------------------------------------------------------------------------------
+
+# Prints only the stash@{n} of each picked line
+pick_stash() {
+    local picked
+    picked=$(git stash list --format='%gd %s' | pick --preview 'git stash show --color=always {1}' "$@") || return
+    cut -d' ' -f1 <<< "$picked"
+}
+
+stash_pop() {
+    local stash
+    stash=$(pick_stash --prompt='stash pop > ') || return 0
+    git stash pop "$stash"
+}
+
+
 #- Entry Point -------------------------------------------------------------------------------------
 
-COMMANDS=(worktree_add worktree_check worktree_delete branch_switch branch_check branch_local branch_delete rebase_branch)
+COMMANDS=(worktree_add worktree_check worktree_delete branch_switch branch_check branch_local branch_delete rebase_branch stash_pop)
 
 usage() {
     cat << EOF
@@ -229,6 +245,7 @@ usage: ${0##*/} <command> [options]
   branch_local                 make local copies of the picked remote branches
   branch_delete [--all] [-f]   delete the picked branches, or every local one; -f forces
   rebase_branch                rebase the current branch onto the picked one
+  stash_pop                    apply and remove the picked stash
 EOF
 }
 
