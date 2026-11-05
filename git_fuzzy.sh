@@ -17,6 +17,15 @@ cd_root() {
     cd "$root" || die "cannot enter $root"
 }
 
+# Stands in for mapfile -t, which the bash 3.2 shipped with macOS lacks
+read_lines() {
+    local line
+    eval "$1=()"
+    while IFS= read -r line; do
+        eval "$1+=(\"\$line\")"
+    done
+}
+
 pick() {
     command -v fzf > /dev/null || die "fzf is not installed"
     fzf --height=40% --border=rounded "$@"
@@ -92,9 +101,9 @@ worktree_delete() {
     cd_root
 
     local -a trees
-    mapfile -t trees < <(git worktree list --porcelain | sed -n 's/^worktree //p' | tail -n +2)
+    read_lines trees < <(git worktree list --porcelain | sed -n 's/^worktree //p' | tail -n +2)
     (( ${#trees[@]} )) || return 0
-    (( all )) || mapfile -t trees < <(printf '%s\n' "${trees[@]}" | pick --multi --prompt='worktree remove > ' \
+    (( all )) || read_lines trees < <(printf '%s\n' "${trees[@]}" | pick --multi --prompt='worktree remove > ' \
         --preview 'git -C {} log --oneline --color=always -n 50')
 
     local tree
@@ -134,7 +143,7 @@ branch_delete() {
     done
 
     local -a branches
-    mapfile -t branches < <(all_branches | grep -vxFf <(protected_branches))
+    read_lines branches < <(all_branches | grep -vxFf <(protected_branches))
     (( ${#branches[@]} )) || return 0
 
     if (( all )); then
@@ -142,7 +151,7 @@ branch_delete() {
         read -rp "Delete these ${#branches[@]} branches? [y/N] " arg
         [[ $arg == [yY] ]] || return 0
     else
-        mapfile -t branches < <(printf '%s\n' "${branches[@]}" | pick_branch --multi --prompt='branch delete > ')
+        read_lines branches < <(printf '%s\n' "${branches[@]}" | pick_branch --multi --prompt='branch delete > ')
     fi
 
     local branch
