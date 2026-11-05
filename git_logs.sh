@@ -24,10 +24,22 @@ copy_clipboard() {
 }
 
 #----------------------------------------------------------------
+# commit picker
+
+# Prints the hash of each picked commit, newest first
+pick_commits() {
+    git log --graph --oneline --decorate --color=always "$@" \
+        | nl -w2 -s' ' -b p'^[[:space:]]*\* ' \
+        | fzf --ansi \
+        | sort -n \
+        | awk '{ for (i = 1; i <= NF; i++) if ($i ~ /^[0-9a-f]{7,40}$/) { print $i; next } }'
+}
+
+#----------------------------------------------------------------
 # custom args
 
 customs=""
-interactive=0
+action=""
 
 new_args=()
 for arg in "$@"; do
@@ -35,8 +47,8 @@ for arg in "$@"; do
         current)
             customs+="main..HEAD"
             ;;
-        cp)
-            interactive=1
+        cp|check)
+            action=$arg
             ;;
         *)
             new_args+=("$arg")
@@ -50,17 +62,23 @@ set -- "${new_args[@]}"
 #----------------------------------------------------------------
 # git logs
 
-if (( interactive )); then
-    selected_sha=$(
-        git log --graph --oneline --decorate --color=always "$@" \
-        | nl -w2 -s' ' -b p'^[[:space:]]*\* ' \
-        | fzf \
-        | grep -oE '[a-f0-9]{7,40}' \
-        | awk '{print $1}'
-    )
+if [ -n "$action" ]; then
+    if ! command -v fzf >/dev/null 2>&1; then
+        echo "git_logs: fzf is not installed" >&2
+        exit 1
+    fi
 
-    git show -s --oneline --decorate --color=always "$selected_sha" 2>/dev/null \
-        && printf '%s' "$selected_sha" | copy_clipboard
+    case "$action" in
+        cp)
+            selected_sha=$(pick_commits "$@")
+            git show -s --oneline --decorate --color=always "$selected_sha" 2>/dev/null \
+                && printf '%s' "$selected_sha" | copy_clipboard
+            ;;
+        check)
+            selected_sha=$(pick_commits "$@")
+            [ -z "$selected_sha" ] || git checkout "$selected_sha"
+            ;;
+    esac
 
 else
     git_log_args=()
