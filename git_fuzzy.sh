@@ -228,10 +228,18 @@ stash_pop() {
     git stash pop "$stash"
 }
 
+# Highest index first, since each drop renumbers the stashes above it
+stash_drop() {
+    local stash
+    while IFS= read -r stash; do
+        git stash drop "$stash"
+    done < <(pick_stash --multi --prompt='stash drop > ' | sort -t'{' -k2 -nr)
+}
+
 
 #- Entry Point -------------------------------------------------------------------------------------
 
-COMMANDS=(worktree_add worktree_check worktree_delete branch_switch branch_check branch_local branch_delete rebase_branch stash_pop)
+COMMANDS=(worktree_add worktree_check worktree_delete branch_switch branch_check branch_local branch_delete rebase_branch stash_pop stash_drop)
 
 usage() {
     cat << EOF
@@ -246,6 +254,7 @@ usage: ${0##*/} <command> [options]
   branch_delete [--all] [-f]   delete the picked branches, or every local one; -f forces
   rebase_branch                rebase the current branch onto the picked one
   stash_pop                    apply and remove the picked stash
+  stash_drop                   delete the picked stashes
 EOF
 }
 
