@@ -30,7 +30,7 @@ copy_clipboard() {
 pick_commits() {
     git log --graph --oneline --decorate --color=always "$@" \
         | nl -w2 -s' ' -b p'^[[:space:]]*\* ' \
-        | fzf --ansi \
+        | fzf --ansi "${fzf_opts[@]}" \
         | sort -n \
         | awk '{ for (i = 1; i <= NF; i++) if ($i ~ /^[0-9a-f]{7,40}$/) { print $i; next } }'
 }
@@ -40,6 +40,7 @@ pick_commits() {
 
 customs=""
 action=""
+fzf_opts=()
 
 new_args=()
 for arg in "$@"; do
@@ -49,6 +50,10 @@ for arg in "$@"; do
             ;;
         cp|check)
             action=$arg
+            ;;
+        show)
+            action=$arg
+            fzf_opts=(--multi)
             ;;
         *)
             new_args+=("$arg")
@@ -77,6 +82,13 @@ if [ -n "$action" ]; then
         check)
             selected_sha=$(pick_commits "$@")
             [ -z "$selected_sha" ] || git checkout "$selected_sha"
+            ;;
+        show)
+            selected_shas=()
+            while IFS= read -r sha; do
+                selected_shas+=("$sha")
+            done < <(pick_commits "$@")
+            (( ${#selected_shas[@]} == 0 )) || git "$action" "${selected_shas[@]}"
             ;;
     esac
 
