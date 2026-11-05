@@ -51,7 +51,7 @@ for arg in "$@"; do
         cp|check)
             action=$arg
             ;;
-        show)
+        show|revert)
             action=$arg
             fzf_opts=(--multi)
             ;;
@@ -83,7 +83,7 @@ if [ -n "$action" ]; then
             selected_sha=$(pick_commits "$@")
             [ -z "$selected_sha" ] || git checkout "$selected_sha"
             ;;
-        show)
+        show|revert)
             selected_shas=()
             while IFS= read -r sha; do
                 selected_shas+=("$sha")
