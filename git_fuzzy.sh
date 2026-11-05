@@ -29,7 +29,7 @@ read_lines() {
 
 pick() {
     command -v fzf > /dev/null || die "fzf is not installed"
-    fzf --height=40% --border=rounded "$@"
+    fzf --height=40% --border=rounded --preview-window=right:65% "$@"
 }
 
 pick_branch() {
