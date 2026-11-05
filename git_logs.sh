@@ -35,7 +35,7 @@ for arg in "$@"; do
         current)
             customs+="main..HEAD"
             ;;
-        fzf)
+        cp)
             interactive=1
             ;;
         *)
