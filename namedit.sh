@@ -14,12 +14,20 @@ fi
 
 #- Record original file names ----------------------------------------------------------------------
 
-RENAME_BUFFER=$(mktemp) || {
+# keep the name list in RAM-backed storage where the system has it
+BUFFER_DIR="${XDG_RUNTIME_DIR:-/dev/shm}"
+[[ -d "$BUFFER_DIR" && -w "$BUFFER_DIR" ]] || BUFFER_DIR="${TMPDIR:-/tmp}"
+
+RENAME_BUFFER=$(mktemp "${BUFFER_DIR%/}/namedit.XXXXXX") || {
     echo -e "Failed to create temp file";
     exit 1;
 }
 mv "$RENAME_BUFFER" "$RENAME_BUFFER.toml"
 RENAME_BUFFER="$RENAME_BUFFER.toml"
+trap 'rm -f "$RENAME_BUFFER"' EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 echo "# Mass Rename Tool
 # - Dont add new lines or delete existing ones
@@ -52,17 +60,23 @@ LINES_BEFORE=$(wc -l < "$RENAME_BUFFER" | tr -d ' ')
 
 $EDITOR "$RENAME_BUFFER"
 
-LINES_AFTER=$(wc -l < "$RENAME_BUFFER" | tr -d ' ')
+# read loop rather than mapfile, which the bash 3.2 shipped with macOS lacks
+NEW_LINES=()
+while IFS= read -r line || [[ -n "$line" ]]; do
+    NEW_LINES+=("$line")
+done < "$RENAME_BUFFER"
+rm "$RENAME_BUFFER"
+
+LINES_AFTER=${#NEW_LINES[@]}
 
 if [ "$LINES_BEFORE" != "$LINES_AFTER" ]; then
     echo -e "\033[31mError:\033[0m Name list mismatch"
-    rm "$RENAME_BUFFER"
     exit 1
 fi
 
 for (( i=6; i<=$LINES_BEFORE; i++ )); do
     original_name="${ORIGINAL_NAMES[$i-6]}"
-    new_name=$(awk "NR==$i" "$RENAME_BUFFER")
+    new_name="${NEW_LINES[$i-1]}"
 
     # do nothing if filename isn't changed
     if [[ "$original_name" == "$new_name" ]]; then
@@ -100,9 +114,4 @@ for (( i=6; i<=$LINES_BEFORE; i++ )); do
         fi
     fi
 done
-
-
-#- Clean temporary file ----------------------------------------------------------------------------
-
-rm "$RENAME_BUFFER"
 
