@@ -110,6 +110,15 @@ worktree_add() {
     done < <(all_branches | pick_branch --multi --prompt='worktree add > ')
 }
 
+worktree_check() {
+    cd_root
+
+    local branch
+    while IFS= read -r branch; do
+        git worktree add --detach "$WORKTREE_DIR$(tr / - <<< "$branch")" "$branch"
+    done < <(remote_branches | pick_branch --multi --prompt='worktree check > ')
+}
+
 worktree_delete() {
     local all=0
     case $1 in
@@ -139,6 +148,12 @@ branch_switch() {
     local branch name
     branch=$(all_branches | pick_branch --prompt='switch > ') || return 0
     name=$(as_local "$branch") && git switch "$name"
+}
+
+branch_check() {
+    local branch
+    branch=$(remote_branches | pick_branch --prompt='check > ') || return 0
+    git switch --detach "$branch"
 }
 
 branch_local() {
@@ -198,20 +213,48 @@ rebase_branch() {
 }
 
 
+#- Stashes -----------------------------------------------------------------------------------------
+
+# Prints only the stash@{n} of each picked line
+pick_stash() {
+    local picked
+    picked=$(git stash list --format='%gd %s' | pick --preview 'git stash show --color=always {1}' "$@") || return
+    cut -d' ' -f1 <<< "$picked"
+}
+
+stash_pop() {
+    local stash
+    stash=$(pick_stash --prompt='stash pop > ') || return 0
+    git stash pop "$stash"
+}
+
+# Highest index first, since each drop renumbers the stashes above it
+stash_drop() {
+    local stash
+    while IFS= read -r stash; do
+        git stash drop "$stash"
+    done < <(pick_stash --multi --prompt='stash drop > ' | sort -t'{' -k2 -nr)
+}
+
+
 #- Entry Point -------------------------------------------------------------------------------------
 
-COMMANDS=(worktree_add worktree_delete branch_switch branch_local branch_delete rebase_branch)
+COMMANDS=(worktree_add worktree_check worktree_delete branch_switch branch_check branch_local branch_delete rebase_branch stash_pop stash_drop)
 
 usage() {
     cat << EOF
 usage: ${0##*/} <command> [options]
 
   worktree_add                 add a worktree for each picked branch
+  worktree_check               add a detached worktree for each picked remote branch, without fetching
   worktree_delete [--all]      remove the picked linked worktrees, or all of them
   branch_switch                switch to the picked branch
+  branch_check                 check out the picked remote branch detached, without fetching
   branch_local                 make local copies of the picked remote branches
   branch_delete [--all] [-f]   delete the picked branches, or every local one; -f forces
   rebase_branch                rebase the current branch onto the picked one
+  stash_pop                    apply and remove the picked stash
+  stash_drop                   delete the picked stashes
 EOF
 }
 

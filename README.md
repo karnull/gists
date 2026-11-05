@@ -24,13 +24,18 @@ Report the top space-consuming directories and files, sorted by size. Helps iden
 is eating up disk space on your system.
 
 ### `git_fuzzy.sh`
-Fuzzy pickers for everyday branch and worktree chores, built on `fzf`. Add or
+Fuzzy pickers for everyday branch, worktree and stash chores, built on `fzf`. Add or
 remove worktrees, switch to, make local, rebase onto or delete branches, each
-picked from a list with a preview of its recent log.
+picked from a list with a preview of its recent log. `worktree_check` and
+`branch_check` open a remote branch as a detached checkout, without fetching it
+or making a local branch. `stash_pop` and `stash_drop` pick stashes with a
+`git stash show` preview.
 
-### `gl.sh`
+### `git_logs.sh`
 Enhanced `git log` visualiser. Renders the commit graph with coloured refs, formatted
-dates, and tidied decorations via an `awk` post-processor.
+dates, and tidied decorations via an `awk` post-processor. With `fzf`, `cp` copies a
+picked commit's id, `check` checks it out, and `show` and `revert` run on every
+picked commit. Formerly `gl.sh`, where `cp` was called `fzf`.
 
 ### `monitor_temp.sh`
 Monitor CPU and GPU temperatures in real-time and alert when thresholds are exceeded.

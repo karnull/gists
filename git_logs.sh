@@ -18,16 +18,29 @@ copy_clipboard() {
         termux-clipboard-set
     else
         cat >/dev/null
-        echo "gl: no clipboard utility found" >&2
+        echo "git_logs: no clipboard utility found" >&2
         return 1
     fi
+}
+
+#----------------------------------------------------------------
+# commit picker
+
+# Prints the hash of each picked commit, newest first
+pick_commits() {
+    git log --graph --oneline --decorate --color=always "$@" \
+        | nl -w2 -s' ' -b p'^[[:space:]]*\* ' \
+        | fzf --ansi "${fzf_opts[@]}" \
+        | sort -n \
+        | awk '{ for (i = 1; i <= NF; i++) if ($i ~ /^[0-9a-f]{7,40}$/) { print $i; next } }'
 }
 
 #----------------------------------------------------------------
 # custom args
 
 customs=""
-interactive=0
+action=""
+fzf_opts=()
 
 new_args=()
 for arg in "$@"; do
@@ -35,8 +48,12 @@ for arg in "$@"; do
         current)
             customs+="main..HEAD"
             ;;
-        fzf)
-            interactive=1
+        cp|check)
+            action=$arg
+            ;;
+        show|revert)
+            action=$arg
+            fzf_opts=(--multi)
             ;;
         *)
             new_args+=("$arg")
@@ -50,17 +67,30 @@ set -- "${new_args[@]}"
 #----------------------------------------------------------------
 # git logs
 
-if (( interactive )); then
-    selected_sha=$(
-        git log --graph --oneline --decorate --color=always "$@" \
-        | nl -w2 -s' ' -b p'^[[:space:]]*\* ' \
-        | fzf \
-        | grep -oE '[a-f0-9]{7,40}' \
-        | awk '{print $1}'
-    )
+if [ -n "$action" ]; then
+    if ! command -v fzf >/dev/null 2>&1; then
+        echo "git_logs: fzf is not installed" >&2
+        exit 1
+    fi
 
-    git show -s --oneline --decorate --color=always "$selected_sha" 2>/dev/null \
-        && printf '%s' "$selected_sha" | copy_clipboard
+    case "$action" in
+        cp)
+            selected_sha=$(pick_commits "$@")
+            git show -s --oneline --decorate --color=always "$selected_sha" 2>/dev/null \
+                && printf '%s' "$selected_sha" | copy_clipboard
+            ;;
+        check)
+            selected_sha=$(pick_commits "$@")
+            [ -z "$selected_sha" ] || git checkout "$selected_sha"
+            ;;
+        show|revert)
+            selected_shas=()
+            while IFS= read -r sha; do
+                selected_shas+=("$sha")
+            done < <(pick_commits "$@")
+            (( ${#selected_shas[@]} == 0 )) || git "$action" "${selected_shas[@]}"
+            ;;
+    esac
 
 else
     git_log_args=()
