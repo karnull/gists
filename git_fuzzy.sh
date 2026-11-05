@@ -202,6 +202,24 @@ rebase_branch() {
 
 COMMANDS=(worktree_add worktree_delete branch_switch branch_local branch_delete rebase_branch)
 
+usage() {
+    cat << EOF
+usage: ${0##*/} <command> [options]
+
+  worktree_add                 add a worktree for each picked branch
+  worktree_delete [--all]      remove the picked linked worktrees, or all of them
+  branch_switch                switch to the picked branch
+  branch_local                 make local copies of the picked remote branches
+  branch_delete [--all] [-f]   delete the picked branches, or every local one; -f forces
+  rebase_branch                rebase the current branch onto the picked one
+EOF
+}
+
+case $1 in
+    '')        usage >&2; exit 1 ;;
+    -h|--help) usage; exit 0 ;;
+esac
+
 cmd=$1
 shift
 
@@ -209,6 +227,7 @@ if [[ " ${COMMANDS[*]} " == *" $cmd "* ]]; then
     "$cmd" "$@"
 else
     echo "git: ${cmd}: command not found" >&2
+    usage >&2
     exit 127
 fi
 
