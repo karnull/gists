@@ -26,7 +26,7 @@ is eating up disk space on your system.
 ### `git_fuzzy.sh`
 Fuzzy pickers for everyday branch and worktree chores, built on `fzf`. Add or
 remove worktrees, switch to, make local, rebase onto or delete branches, each
-picked from a list with a preview of recent commits across every branch.
+picked from a list with a preview of its recent log.
 
 ### `gl.sh`
 Enhanced `git log` visualiser. Renders the commit graph with coloured refs, formatted
