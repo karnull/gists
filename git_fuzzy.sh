@@ -110,6 +110,15 @@ worktree_add() {
     done < <(all_branches | pick_branch --multi --prompt='worktree add > ')
 }
 
+worktree_check() {
+    cd_root
+
+    local branch
+    while IFS= read -r branch; do
+        git worktree add --detach "$WORKTREE_DIR$(tr / - <<< "$branch")" "$branch"
+    done < <(remote_branches | pick_branch --multi --prompt='worktree check > ')
+}
+
 worktree_delete() {
     local all=0
     case $1 in
@@ -200,13 +209,14 @@ rebase_branch() {
 
 #- Entry Point -------------------------------------------------------------------------------------
 
-COMMANDS=(worktree_add worktree_delete branch_switch branch_local branch_delete rebase_branch)
+COMMANDS=(worktree_add worktree_check worktree_delete branch_switch branch_local branch_delete rebase_branch)
 
 usage() {
     cat << EOF
 usage: ${0##*/} <command> [options]
 
   worktree_add                 add a worktree for each picked branch
+  worktree_check               add a detached worktree for each picked remote branch, without fetching
   worktree_delete [--all]      remove the picked linked worktrees, or all of them
   branch_switch                switch to the picked branch
   branch_local                 make local copies of the picked remote branches
