@@ -150,6 +150,12 @@ branch_switch() {
     name=$(as_local "$branch") && git switch "$name"
 }
 
+branch_check() {
+    local branch
+    branch=$(remote_branches | pick_branch --prompt='check > ') || return 0
+    git switch --detach "$branch"
+}
+
 branch_local() {
     local branch
     while IFS= read -r branch; do
@@ -209,7 +215,7 @@ rebase_branch() {
 
 #- Entry Point -------------------------------------------------------------------------------------
 
-COMMANDS=(worktree_add worktree_check worktree_delete branch_switch branch_local branch_delete rebase_branch)
+COMMANDS=(worktree_add worktree_check worktree_delete branch_switch branch_check branch_local branch_delete rebase_branch)
 
 usage() {
     cat << EOF
@@ -219,6 +225,7 @@ usage: ${0##*/} <command> [options]
   worktree_check               add a detached worktree for each picked remote branch, without fetching
   worktree_delete [--all]      remove the picked linked worktrees, or all of them
   branch_switch                switch to the picked branch
+  branch_check                 check out the picked remote branch detached, without fetching
   branch_local                 make local copies of the picked remote branches
   branch_delete [--all] [-f]   delete the picked branches, or every local one; -f forces
   rebase_branch                rebase the current branch onto the picked one
