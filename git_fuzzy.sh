@@ -29,11 +29,11 @@ read_lines() {
 
 pick() {
     command -v fzf > /dev/null || die "fzf is not installed"
-    fzf --height=40% --border=rounded "$@"
+    fzf --height=40% --border=rounded --preview-window=right:65% "$@"
 }
 
 pick_branch() {
-    pick --preview 'git log --oneline --color=always -n 50 {}' "$@"
+    pick --preview 'git log --oneline --decorate --all --color=always -n 50 {}' "$@"
 }
 
 local_branches() {
@@ -124,7 +124,7 @@ worktree_delete() {
     read_lines trees < <(git worktree list --porcelain | sed -n 's/^worktree //p' | tail -n +2)
     (( ${#trees[@]} )) || return 0
     (( all )) || read_lines trees < <(printf '%s\n' "${trees[@]}" | pick --multi --prompt='worktree remove > ' \
-        --preview 'git -C {} log --oneline --color=always -n 50')
+        --preview 'git -C {} log --oneline --decorate --all --color=always -n 50')
 
     local tree
     for tree in "${trees[@]}"; do
