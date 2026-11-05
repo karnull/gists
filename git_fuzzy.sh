@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+# Add .worktrees/ to your global gitignore, or the main checkout sees every worktree as untracked
 WORKTREE_DIR="./.worktrees/"
 
 #- Helper Functions --------------------------------------------------------------------------------
