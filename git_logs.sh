@@ -18,7 +18,7 @@ copy_clipboard() {
         termux-clipboard-set
     else
         cat >/dev/null
-        echo "gl: no clipboard utility found" >&2
+        echo "git_logs: no clipboard utility found" >&2
         return 1
     fi
 }
