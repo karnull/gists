@@ -142,8 +142,11 @@ branch_delete() {
         esac
     done
 
+    local source=all_branches
+    (( all )) && source=local_branches
+
     local -a branches
-    read_lines branches < <(all_branches | grep -vxFf <(protected_branches))
+    read_lines branches < <("$source" | grep -vxFf <(protected_branches))
     (( ${#branches[@]} )) || return 0
 
     if (( all )); then
