@@ -35,6 +35,16 @@ pick_commits() {
         | awk '{ for (i = 1; i <= NF; i++) if ($i ~ /^[0-9a-f]{7,40}$/) { print $i; next } }'
 }
 
+# Fills selected_shas with the picked commits, and fails when none were picked
+pick_many() {
+    local sha
+    selected_shas=()
+    while IFS= read -r sha; do
+        selected_shas+=("$sha")
+    done < <(pick_commits "$@")
+    (( ${#selected_shas[@]} ))
+}
+
 #----------------------------------------------------------------
 # custom args
 
@@ -83,12 +93,16 @@ if [ -n "$action" ]; then
             selected_sha=$(pick_commits "$@")
             [ -z "$selected_sha" ] || git checkout "$selected_sha"
             ;;
-        show|revert)
-            selected_shas=()
-            while IFS= read -r sha; do
-                selected_shas+=("$sha")
-            done < <(pick_commits "$@")
-            (( ${#selected_shas[@]} == 0 )) || git "$action" "${selected_shas[@]}"
+        show)
+            pick_many "$@" || exit 0
+            for sha in "${selected_shas[@]}"; do
+                git log --stat -1 --color=always "$sha"
+                echo ""
+            done | less -FRX
+            ;;
+        revert)
+            pick_many "$@" || exit 0
+            git revert "${selected_shas[@]}"
             ;;
     esac
 
