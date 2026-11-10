@@ -24,12 +24,16 @@ Report the top space-consuming directories and files, sorted by size. Helps iden
 is eating up disk space on your system.
 
 ### `git_fuzzy.sh`
-Fuzzy pickers for everyday branch, worktree and stash chores, built on `fzf`. Add or
+Fuzzy pickers for everyday branch, worktree, stash and staging chores, built on `fzf`. Add or
 remove worktrees, switch to, make local, rebase onto or delete branches, each
 picked from a list with a preview of its recent log. `worktree_check` and
 `branch_check` open a remote branch as a detached checkout, without fetching it
 or making a local branch. `stash_pop` and `stash_drop` pick stashes with a
-`git stash show` preview.
+`git stash show` preview. `stage_select` lists every uncommitted change, labelled
+staged, modified, deleted or untracked, with the staged ones already picked;
+pick or unpick files with tab to stage or unstage them. A partly staged file
+gets a staged and a modified entry: pick the first to unstage it, the second to
+stage all of it, or neither to leave it be. It needs `fzf` 0.46 or later.
 
 ### `git_logs.sh`
 Enhanced `git log` visualiser. Renders the commit graph with coloured refs, formatted
