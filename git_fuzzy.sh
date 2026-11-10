@@ -237,9 +237,112 @@ stash_drop() {
 }
 
 
+#- Staging -----------------------------------------------------------------------------------------
+
+# Pre-selects the first n entries, which is where the staged files are listed
+preselect_first() {
+    local i actions=''
+    for (( i = 1; i <= $1; i++ )); do
+        actions+="pos($i)+toggle+"
+    done
+    echo "load:${actions}first"
+}
+
+git_paths() {
+    git -c core.quotePath=false "$@"
+}
+
+is_listed() {
+    local item=$1
+    shift
+    printf '%s\n' "$@" | grep -qxF -- "$item"
+}
+
+# Colour goes on the label only, so the key and path fields stay plain
+change_line() {
+    printf '%s\t%s%-10s\033[0m\t%s\n' "$1" "$2" "$3" "$4"
+}
+
+# Fully staged files come first so preselect_first can pick them; a partly staged file gets two unpicked entries
+list_changes() {
+    local file
+    for file in "${fully_staged[@]}"; do
+        change_line s $'\033[32m' staged "$file"
+    done
+    for file in "${partial[@]}"; do
+        change_line s $'\033[33m' staged "$file"
+        change_line u $'\033[33m' modified "$file"
+    done
+    for file in "${unstaged[@]}"; do
+        if is_listed "$file" "${deleted[@]}"; then
+            change_line u $'\033[31m' deleted "$file"
+        elif is_listed "$file" "${changed[@]}"; then
+            change_line u $'\033[34m' modified "$file"
+        else
+            change_line u $'\033[90m' untracked "$file"
+        fi
+    done
+}
+
+stage_select() {
+    cd "$(git rev-parse --show-toplevel)" || exit 1
+
+    local -a staged changed deleted unstaged fully_staged partial picked_staged picked_unstaged to_add to_unstage
+    read_lines staged < <(git_paths diff --cached --name-only)
+    read_lines changed < <(git_paths diff --name-only)
+    read_lines deleted < <(git_paths diff --name-only --diff-filter=D)
+    read_lines unstaged < <(
+        { printf '%s\n' "${changed[@]}"; git_paths ls-files --others --exclude-standard; } \
+            | grep -v '^$' | grep -vxFf <(printf '%s\n' "${staged[@]}")
+    )
+    (( ${#staged[@]} + ${#unstaged[@]} )) || return 0
+
+    local file line selection
+    for file in "${staged[@]}"; do
+        if is_listed "$file" "${changed[@]}"; then
+            partial+=("$file")
+        else
+            fully_staged+=("$file")
+        fi
+    done
+
+    # fzf prints the item under the cursor when nothing is selected, so an empty selection is printed as nothing
+    selection=$(
+        list_changes | pick --multi --ansi --prompt='stage > ' --delimiter='\t' --with-nth=2.. --nth=2 --tabstop=1 \
+            --bind "$(preselect_first ${#fully_staged[@]})" \
+            --bind 'enter:become([ "$FZF_SELECT_COUNT" -eq 0 ] || printf "%s\n" {+})' \
+            --preview 'case {1} in
+                s*) git diff --cached --color=always -- {3} ;;
+                *)  git diff --color=always -- {3}; git ls-files --error-unmatch -- {3} > /dev/null 2>&1 || cat -- {3} ;;
+            esac'
+    ) || return 0
+
+    while IFS= read -r line; do
+        case $line in
+            s$'\t'*) picked_staged+=("${line##*$'\t'}") ;;
+            u$'\t'*) picked_unstaged+=("${line##*$'\t'}") ;;
+        esac
+    done <<< "$selection"
+
+    for file in "${unstaged[@]}" "${partial[@]}"; do
+        is_listed "$file" "${picked_unstaged[@]}" && to_add+=("$file")
+    done
+    for file in "${fully_staged[@]}"; do
+        is_listed "$file" "${picked_staged[@]}" || to_unstage+=("$file")
+    done
+    for file in "${partial[@]}"; do
+        is_listed "$file" "${picked_staged[@]}" && ! is_listed "$file" "${picked_unstaged[@]}" && to_unstage+=("$file")
+    done
+
+    (( ${#to_add[@]} )) && git add -- "${to_add[@]}"
+    (( ${#to_unstage[@]} )) && git restore --staged -- "${to_unstage[@]}"
+    return 0
+}
+
+
 #- Entry Point -------------------------------------------------------------------------------------
 
-COMMANDS=(worktree_add worktree_check worktree_delete branch_switch branch_check branch_local branch_delete rebase_branch stash_pop stash_drop)
+COMMANDS=(worktree_add worktree_check worktree_delete branch_switch branch_check branch_local branch_delete rebase_branch stash_pop stash_drop stage_select)
 
 usage() {
     cat << EOF
@@ -255,6 +358,7 @@ usage: ${0##*/} <command> [options]
   rebase_branch                rebase the current branch onto the picked one
   stash_pop                    apply and remove the picked stash
   stash_drop                   delete the picked stashes
+  stage_select                 stage the picked changes and unstage the rest, staged ones start picked
 EOF
 }
 
