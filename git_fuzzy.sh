@@ -27,9 +27,29 @@ read_lines() {
     done
 }
 
+# fzf can only size itself against the whole screen, so ask the terminal which row the cursor is on
+free_lines() {
+    local rows row saved _
+    read -r rows _ < <(stty size < /dev/tty) || return 1
+    saved=$(stty -g < /dev/tty) || return 1
+    stty -icanon -echo < /dev/tty
+    printf '\033[6n' > /dev/tty
+    IFS='[;' read -r -d R -t 1 _ row _ < /dev/tty
+    stty "$saved" < /dev/tty
+    [[ $row =~ ^[0-9]+$ ]] || return 1
+    echo $(( rows - row + 1 ))
+}
+
+# Every line below the cursor, but never fewer than 10, and 40% when the terminal will not say
+fzf_height() {
+    local lines
+    lines=$(free_lines 2> /dev/null) || { echo 40%; return; }
+    echo $(( lines < 10 ? 10 : lines ))
+}
+
 pick() {
     command -v fzf > /dev/null || die "fzf is not installed"
-    fzf --height=40% --border=rounded --preview-window=right:65% "$@"
+    fzf --height="$(fzf_height)" --border=rounded --preview-window=right:65% "$@"
 }
 
 pick_branch() {
