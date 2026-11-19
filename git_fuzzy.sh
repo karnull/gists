@@ -359,10 +359,27 @@ stage_select() {
     return 0
 }
 
+# Only unstaged changes are offered, since git restore puts back what is staged and cannot touch untracked files
+restore() {
+    cd "$(git rev-parse --show-toplevel)" || exit 1
+
+    local -a files
+    read_lines files < <(git_paths diff --name-only)
+    (( ${#files[@]} )) || return 0
+    read_lines files < <(printf '%s\n' "${files[@]}" | pick --multi --prompt='restore > ' \
+        --preview 'git diff --color=always -- {}')
+    (( ${#files[@]} )) || return 0
+
+    local answer
+    printf '  %s\n' "${files[@]}"
+    read -rp "Discard the changes to these ${#files[@]} files? [Y/n] " answer
+    [[ -z $answer || $answer == [yY] ]] || return 0
+    git restore -- "${files[@]}"
+}
 
 #- Entry Point -------------------------------------------------------------------------------------
 
-COMMANDS=(worktree_add worktree_check worktree_delete branch_switch branch_check branch_local branch_delete rebase_branch stash_pop stash_drop stage_select)
+COMMANDS=(worktree_add worktree_check worktree_delete branch_switch branch_check branch_local branch_delete rebase_branch stash_pop stash_drop stage_select restore)
 
 usage() {
     cat << EOF
@@ -379,6 +396,7 @@ usage: ${0##*/} <command> [options]
   stash_pop                    apply and remove the picked stash
   stash_drop                   delete the picked stashes
   stage_select                 stage the picked changes and unstage the rest, staged ones start picked
+  restore                      discard the unstaged changes to the picked files, after one confirmation
 EOF
 }
 
