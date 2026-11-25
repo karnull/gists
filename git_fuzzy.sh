@@ -56,6 +56,21 @@ pick_branch() {
     pick --preview 'git log --oneline --decorate --color=always -n 50 {}' "$@"
 }
 
+# Uses the branch named on the command line when it is in the list, otherwise says so and opens the picker
+choose_branch() {
+    local name=$1 list
+    shift
+    list=$(cat)
+    if [[ -n $name ]]; then
+        if grep -qxF -- "$name" <<< "$list"; then
+            echo "$name"
+            return
+        fi
+        echo "git: $name: no such branch" >&2
+    fi
+    pick_branch "$@" <<< "$list"
+}
+
 local_branches() {
     git for-each-ref --format='%(refname:short)' refs/heads
 }
@@ -202,8 +217,10 @@ worktree_delete() {
 #- Branches ----------------------------------------------------------------------------------------
 
 branch_switch() {
+    (( $# <= 1 )) || die "branch_switch: takes one branch at most"
+
     local branch name
-    branch=$(all_branches | pick_branch --prompt='switch > ') || return 0
+    branch=$(all_branches | choose_branch "$1" --prompt='switch > ') || return 0
     name=$(as_local "$branch") && git switch "$name"
 }
 
@@ -426,7 +443,7 @@ usage: ${0##*/} <command> [options]
   worktree_check               add a detached worktree for each picked remote branch, without fetching
   worktree_switch [branch]     print the path of the picked worktree, or the named branch's, for cd
   worktree_delete [--all]      remove the picked linked worktrees, or all of them
-  branch_switch                switch to the picked branch
+  branch_switch [branch]       switch to the picked branch, or the named one
   branch_check                 check out the picked remote branch detached, without fetching
   branch_local                 make local copies of the picked remote branches
   branch_delete [--all] [-f]   delete the picked branches, or every local one; -f forces
