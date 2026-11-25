@@ -141,7 +141,7 @@ worktree_add() {
     local branch name
     while IFS= read -r branch; do
         name=$(as_local "$branch") || continue
-        git worktree add "$WORKTREE_DIR$(tr / - <<< "$name")" "$name"
+        git worktree add "$WORKTREE_DIR${name##*/}" "$name"
     done < <(all_branches | pick_branch --multi --prompt='worktree add > ')
 }
 
@@ -150,7 +150,7 @@ worktree_check() {
 
     local branch
     while IFS= read -r branch; do
-        git worktree add --detach "$WORKTREE_DIR$(tr / - <<< "$branch")" "$branch"
+        git worktree add --detach "$WORKTREE_DIR${branch##*/}" "$branch"
     done < <(remote_branches | pick_branch --multi --prompt='worktree check > ')
 }
 
