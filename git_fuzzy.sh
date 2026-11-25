@@ -139,6 +139,43 @@ worktree_check() {
     done < <(remote_branches | pick_branch --multi --prompt='worktree check > ')
 }
 
+# Prints branch<TAB>path for the main checkout and every worktree in WORKTREE_DIR
+worktree_list() {
+    local root=$1 line path='' label=''
+    git worktree list --porcelain | while IFS= read -r line; do
+        case $line in
+            'worktree '*) path=${line#worktree } ;;
+            'branch '*)   label=${line#branch refs/heads/} ;;
+            detached)     label="(detached) ${path##*/}" ;;
+            '')
+                if [[ $path == "$root" || $path == "$root/${WORKTREE_DIR#./}"* ]]; then
+                    printf '%s\t%s\n' "$label" "$path"
+                fi
+                label=''
+                ;;
+        esac
+    done
+}
+
+# A script cannot change its caller's directory, so this prints the path for a shell function to cd into
+worktree_switch() {
+    (( $# <= 1 )) || die "worktree_switch: takes one branch at most"
+
+    local root trees picked
+    root=$(git worktree list --porcelain | sed -n '1s/^worktree //p')
+    [[ -n $root ]] || exit 1
+    trees=$(worktree_list "$root")
+
+    if [[ -n $1 ]]; then
+        picked=$(awk -F '\t' -v name="$1" '$1 == name { print; exit }' <<< "$trees")
+        [[ -n $picked ]] || echo "git: $1: no worktree for that branch" >&2
+    fi
+    [[ -n $picked ]] || picked=$(pick --prompt='worktree switch > ' --delimiter='\t' --with-nth=1 \
+        --preview 'git -C {2} log --oneline --decorate --color=always -n 50' <<< "$trees") || return 0
+
+    printf '%s\n' "${picked#*$'\t'}"
+}
+
 worktree_delete() {
     local all=0
     case $1 in
@@ -379,7 +416,7 @@ restore() {
 
 #- Entry Point -------------------------------------------------------------------------------------
 
-COMMANDS=(worktree_add worktree_check worktree_delete branch_switch branch_check branch_local branch_delete rebase_branch stash_pop stash_drop stage_select restore)
+COMMANDS=(worktree_add worktree_check worktree_switch worktree_delete branch_switch branch_check branch_local branch_delete rebase_branch stash_pop stash_drop stage_select restore)
 
 usage() {
     cat << EOF
@@ -387,6 +424,7 @@ usage: ${0##*/} <command> [options]
 
   worktree_add                 add a worktree for each picked branch
   worktree_check               add a detached worktree for each picked remote branch, without fetching
+  worktree_switch [branch]     print the path of the picked worktree, or the named branch's, for cd
   worktree_delete [--all]      remove the picked linked worktrees, or all of them
   branch_switch                switch to the picked branch
   branch_check                 check out the picked remote branch detached, without fetching
