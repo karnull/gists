@@ -23,6 +23,19 @@ stage all of it, or neither to leave it be. It needs `fzf` 0.46 or later.
 `restore` discards the unstaged changes to the picked files, after a single
 confirmation for all of them.
 
+`branch_switch`, `rebase_branch` and `worktree_switch` take an optional branch
+name to skip the picker; an unknown name is reported and the picker opens
+instead. Worktrees go in `.worktrees/`, named after the last part of the
+branch, so `feature/dark-mode` lands in `.worktrees/dark-mode`.
+
+`worktree_switch` lists the main checkout and every worktree in `.worktrees/`.
+A script cannot change its caller's directory, so it prints the picked path;
+wrap it in a shell function to `cd` there:
+
+```sh
+gw() { local d; d=$(git_fuzzy.sh worktree_switch "$@") && [ -n "$d" ] && cd "$d"; }
+```
+
 ### `git_logs.sh`
 ![](.media/git_logs.webp)
 
