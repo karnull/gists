@@ -56,6 +56,21 @@ pick_branch() {
     pick --preview 'git log --oneline --decorate --color=always -n 50 {}' "$@"
 }
 
+# Uses the branch named on the command line when it is in the list, otherwise says so and opens the picker
+choose_branch() {
+    local name=$1 list
+    shift
+    list=$(cat)
+    if [[ -n $name ]]; then
+        if grep -qxF -- "$name" <<< "$list"; then
+            echo "$name"
+            return
+        fi
+        echo "git: $name: no such branch" >&2
+    fi
+    pick_branch "$@" <<< "$list"
+}
+
 local_branches() {
     git for-each-ref --format='%(refname:short)' refs/heads
 }
@@ -126,7 +141,7 @@ worktree_add() {
     local branch name
     while IFS= read -r branch; do
         name=$(as_local "$branch") || continue
-        git worktree add "$WORKTREE_DIR$(tr / - <<< "$name")" "$name"
+        git worktree add "$WORKTREE_DIR${name##*/}" "$name"
     done < <(all_branches | pick_branch --multi --prompt='worktree add > ')
 }
 
@@ -135,8 +150,45 @@ worktree_check() {
 
     local branch
     while IFS= read -r branch; do
-        git worktree add --detach "$WORKTREE_DIR$(tr / - <<< "$branch")" "$branch"
+        git worktree add --detach "$WORKTREE_DIR${branch##*/}" "$branch"
     done < <(remote_branches | pick_branch --multi --prompt='worktree check > ')
+}
+
+# Prints branch<TAB>path for the main checkout and every worktree in WORKTREE_DIR
+worktree_list() {
+    local root=$1 line path='' label=''
+    git worktree list --porcelain | while IFS= read -r line; do
+        case $line in
+            'worktree '*) path=${line#worktree } ;;
+            'branch '*)   label=${line#branch refs/heads/} ;;
+            detached)     label="(detached) ${path##*/}" ;;
+            '')
+                if [[ $path == "$root" || $path == "$root/${WORKTREE_DIR#./}"* ]]; then
+                    printf '%s\t%s\n' "$label" "$path"
+                fi
+                label=''
+                ;;
+        esac
+    done
+}
+
+# A script cannot change its caller's directory, so this prints the path for a shell function to cd into
+worktree_switch() {
+    (( $# <= 1 )) || die "worktree_switch: takes one branch at most"
+
+    local root trees picked
+    root=$(git worktree list --porcelain | sed -n '1s/^worktree //p')
+    [[ -n $root ]] || exit 1
+    trees=$(worktree_list "$root")
+
+    if [[ -n $1 ]]; then
+        picked=$(awk -F '\t' -v name="$1" '$1 == name { print; exit }' <<< "$trees")
+        [[ -n $picked ]] || echo "git: $1: no worktree for that branch" >&2
+    fi
+    [[ -n $picked ]] || picked=$(pick --prompt='worktree switch > ' --delimiter='\t' --with-nth=1 \
+        --preview 'git -C {2} log --oneline --decorate --color=always -n 50' <<< "$trees") || return 0
+
+    printf '%s\n' "${picked#*$'\t'}"
 }
 
 worktree_delete() {
@@ -165,8 +217,10 @@ worktree_delete() {
 #- Branches ----------------------------------------------------------------------------------------
 
 branch_switch() {
+    (( $# <= 1 )) || die "branch_switch: takes one branch at most"
+
     local branch name
-    branch=$(all_branches | pick_branch --prompt='switch > ') || return 0
+    branch=$(all_branches | choose_branch "$1" --prompt='switch > ') || return 0
     name=$(as_local "$branch") && git switch "$name"
 }
 
@@ -226,9 +280,15 @@ branch_delete() {
 #- Rebase ------------------------------------------------------------------------------------------
 
 rebase_branch() {
-    local branch
-    branch=$(all_branches | grep -vxF "$(git branch --show-current)" | pick_branch --prompt='rebase onto > ') \
-        || return 0
+    (( $# <= 1 )) || die "rebase_branch: takes one branch at most"
+
+    local branch current name=$1
+    current=$(git branch --show-current)
+    if [[ -n $name && $name == "$current" ]]; then
+        echo "git: cannot rebase $name onto itself" >&2
+        name=''
+    fi
+    branch=$(all_branches | grep -vxF "$current" | choose_branch "$name" --prompt='rebase onto > ') || return 0
     git rebase "$branch"
 }
 
@@ -379,7 +439,7 @@ restore() {
 
 #- Entry Point -------------------------------------------------------------------------------------
 
-COMMANDS=(worktree_add worktree_check worktree_delete branch_switch branch_check branch_local branch_delete rebase_branch stash_pop stash_drop stage_select restore)
+COMMANDS=(worktree_add worktree_check worktree_switch worktree_delete branch_switch branch_check branch_local branch_delete rebase_branch stash_pop stash_drop stage_select restore)
 
 usage() {
     cat << EOF
@@ -387,12 +447,13 @@ usage: ${0##*/} <command> [options]
 
   worktree_add                 add a worktree for each picked branch
   worktree_check               add a detached worktree for each picked remote branch, without fetching
+  worktree_switch [branch]     print the path of the picked worktree, or the named branch's, for cd
   worktree_delete [--all]      remove the picked linked worktrees, or all of them
-  branch_switch                switch to the picked branch
+  branch_switch [branch]       switch to the picked branch, or the named one
   branch_check                 check out the picked remote branch detached, without fetching
   branch_local                 make local copies of the picked remote branches
   branch_delete [--all] [-f]   delete the picked branches, or every local one; -f forces
-  rebase_branch                rebase the current branch onto the picked one
+  rebase_branch [branch]       rebase the current branch onto the picked one, or the named one
   stash_pop                    apply and remove the picked stash
   stash_drop                   delete the picked stashes
   stage_select                 stage the picked changes and unstage the rest, staged ones start picked
