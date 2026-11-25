@@ -280,9 +280,15 @@ branch_delete() {
 #- Rebase ------------------------------------------------------------------------------------------
 
 rebase_branch() {
-    local branch
-    branch=$(all_branches | grep -vxF "$(git branch --show-current)" | pick_branch --prompt='rebase onto > ') \
-        || return 0
+    (( $# <= 1 )) || die "rebase_branch: takes one branch at most"
+
+    local branch current name=$1
+    current=$(git branch --show-current)
+    if [[ -n $name && $name == "$current" ]]; then
+        echo "git: cannot rebase $name onto itself" >&2
+        name=''
+    fi
+    branch=$(all_branches | grep -vxF "$current" | choose_branch "$name" --prompt='rebase onto > ') || return 0
     git rebase "$branch"
 }
 
@@ -447,7 +453,7 @@ usage: ${0##*/} <command> [options]
   branch_check                 check out the picked remote branch detached, without fetching
   branch_local                 make local copies of the picked remote branches
   branch_delete [--all] [-f]   delete the picked branches, or every local one; -f forces
-  rebase_branch                rebase the current branch onto the picked one
+  rebase_branch [branch]       rebase the current branch onto the picked one, or the named one
   stash_pop                    apply and remove the picked stash
   stash_drop                   delete the picked stashes
   stage_select                 stage the picked changes and unstage the rest, staged ones start picked
